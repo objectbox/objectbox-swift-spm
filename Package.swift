@@ -7,46 +7,26 @@ let package = Package(
   name: "ObjectBox",
 
   products: [
-    .plugin(name: "BuildCommand", targets: ["BuildCommand"]),  // not functional, just a placeholder
     .plugin(name: "GeneratorCommand", targets: ["GeneratorCommand"]),
     .library(name: "ObjectBox", targets: ["ObjectBox"]),
-    // .library(name: "ObjectBoxSyc", targets: ["ObjectBoxSync"]),
-
   ],
   targets: [
 
     /// MARK: - Binary dependencies
     .binaryTarget(
       name: "ObjectBoxGenerator",
-      // path: "Resources/ObjectBoxGenerator.artifactbundle"
       url:
         "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v1.3.x/ObjectBoxGenerator.artifactbundle.zip",
       checksum: "62d3e8d9e7141ef75462c8f8f08e6334def0b80f946053550ff7c6789c3187f9"
     ),
     .binaryTarget(
       name: "ObjectBox",
-      //path: "../tmp/ObjectBox-xcframework-4.0.3.zip"
       url:
         "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v1.3.x/ObjectBox.xcframework.zip",
       checksum: "b680d60d598f818d5f077eebbe0584bd38b723c982133bc186ffe18bf6364eb2"
     ),
 
-    // .binaryTarget(
-    //   name: "ObjectBoxSync",
-    //   url:
-    //     "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v1.3.x/ObjectBoxSync.xcframework.zip",
-    //   checksum: "TODO"
-    // ),
-
     /// MARK: - Plugin implementations
-
-    // TODO, nothing functional atm, just a placeholder
-    .plugin(
-      name: "BuildCommand",
-      capability: .buildTool(),
-      path: "Plugins/BuildCommand"
-    ),
-
     .plugin(
       name: "GeneratorCommand",
       capability: .command(
