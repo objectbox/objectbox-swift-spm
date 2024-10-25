@@ -61,6 +61,7 @@ struct GeneratorCommand: CommandPlugin {
 
     // keep for now as a reminder to check if we process args, or not
     let tool = try context.tool(named: "objectbox-generator")
+    print("Processing arguments: \(arguments)")
     if arguments.count == 1 {
       if arguments[0] == "context" {
         dump(context)
@@ -105,13 +106,12 @@ struct GeneratorCommand: CommandPlugin {
 
     func performCommand(context: XcodePluginContext, arguments: [String]) throws {
 
-      // TODO , this is way more complex than the PackagePlugin version
+      // TODO , this is more complex than the PackagePlugin version
       // XCode has no structure,
       // Probably just print a message to work with the cocoapod right now
       // but lets try and see how far we can come
 
-      let generatorTool = try context.tool(named: "objectbox-generator")
-      let generatorUrl = URL(fileURLWithPath: generatorTool.path.string)
+      let tool = try context.tool(named: "objectbox-generator")
 
       var argExtractor = ArgumentExtractor(arguments)
       let targetNames = argExtractor.extractOption(named: "target")
