@@ -150,17 +150,18 @@ struct GeneratorCommand: CommandPlugin {
 
       if sourcesArgs.isEmpty {
         // TODO probably error
-        Diagnostics.warning("No Sift files found in Target \(targetName) ")
+        Diagnostics.warning("No Swift files found in Target \(targetName) ")
         return
       }
 
       let targetPath = context.xcodeProject.directory
+      let outputFolder = targetPath.appending("ObjectBox-generated").string
+      let jsonModel = targetPath.appending("ObjectBox-models.json").string
 
       let args: [String] =
         sourcesArgs + [
-          "--model-json", targetPath.appending("ObjectBox-models.json").string,
-          "--output", targetPath.appending("ObjectBox-generated").string,
-          "--templates", targetPath.string,
+          "--model-json", jsonModel,
+          "--output", outputFolder,
           "--disableCache",
           "--verbose",
           "--no-statistics",
@@ -169,6 +170,8 @@ struct GeneratorCommand: CommandPlugin {
       runGenerator(generator: tool, args: args)
 
       // TODO , figgure out how to add the generated folder to xcode within here
+      Diagnostics.remark("！ Don't forget to add the generated source file in 'ObjectBox-generated/EntityInfo.generated.swift' to the project, and to git if you want to keep it")
+      Diagnostics.remark("！ Don't forget to add the generated model file in 'ObjectBox-models.json' to git, this is important for the ObjectBox model generation")
 
     }
 
