@@ -61,7 +61,7 @@ struct GeneratorCommand: CommandPlugin {
 
     // keep for now as a reminder to check if we process args, or not
     let tool = try context.tool(named: "objectbox-generator")
-    print("Processing arguments: \(arguments)")
+    print("Processing arguments:: \(arguments)")
     if arguments.count == 1 {
       if arguments[0] == "context" {
         dump(context)
@@ -77,6 +77,14 @@ struct GeneratorCommand: CommandPlugin {
       targetNames.isEmpty
       ? context.package.targets
       : try context.package.targets(named: targetNames)
+
+    // Since the generator generates code even for targets that have no ObjectBox annotations at all,
+    // restrict the target to not generate code for targets like tests ...
+    if targets.count > 1 {
+      let targetNames = targets.map { $0.name }.joined(separator: ", ")
+      Diagnostics.error("Multiple targets found\nPlease select specify one target by using the `--target name` option\nAvailable target names: \(targetNames)")
+      return
+    }
 
     for target in targets {
       guard let target = target.sourceModule else { continue }
