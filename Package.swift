@@ -50,20 +50,3 @@ let package = Package(
   ]
 )
 
-// TODO, we need to be able to switch between CI and release in the URL, but keep the checksum the same
-// additionally, having an option for local development could also be handy
-// see if this, or any other way could be used ...
-// enum BinarySource {
-//     case local, staging, release
-
-//     init() {
-//         if getenv("OBX_SPM_LOCAL_BINARIES") != nil {
-//             self = .local
-//         } else if getenv("OBX_SPM_STAGING_BINARIES") != nil  {
-//             self = .staging
-//         } else {
-//             self = .release
-//         }
-//     }
-// }
-
