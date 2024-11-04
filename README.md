@@ -4,6 +4,10 @@ This Swift package contains the ObjectOox generator as a plugin and the ObjectBo
 
 ## Usage
 
+Add you package dependency
+
+### From a Swift package
+
 Declare the package dependency
 
 ```swift
@@ -14,11 +18,16 @@ Then link your application with ObjectBox
 
 ```swift
   .executableTarget(
-    name: "CoolApp",
+    name: "MyApp",
     dependencies: [
-        .product(name: "ObjectBox", package: "objectbox-swift-spm")
+        .product(name: "ObjectBox.xcframework", package: "objectbox-swift-spm")
     ],
 ```
+
+### For a XCode project
+
+- Add a package dependency `"https://github.com/objectbox/objectbox-swift-spm.git"` for your project.
+- Confirm to link your project against `ObjectBox.xcframework`
 
 ## Running the objectbox code generator
 
@@ -34,19 +43,14 @@ To run the plugin from the command line:
 swift package plugin --allow-writing-to-package-directory objectbox-generator
 ```
 
-### XCode, opening a Swift package
+### XCode
 
 Find the plugin menu entry for `ObjectBox` and run the `GeneratorCommand`.
 
-If you have multiple targets, select the one for which you want to generate the code.
+You will be asked to select a target, select that one which contains your ObjectBox model.
 
-### XCode, classic .xcodeproj
+## Known limitations
 
-As for now, we still recommend to use the existing Cocoapod.
-
-However, if you want, you can still add `objectbox-swift-spm` as a package dependency
-and run the generator command. But please be aware that this is not supported yet.
-
-TODO: add note about the XCFramework
-
-(TODO: Note to myself: Align cocoapod way and generator way to produce the same files)
+- The MacCatalyst build has not yet been integrated into Objectbox tests.
+- For XCode project, the generated file `TargetProject/ObjectBox-generated/EntityInfo.generated.swift` needs to be added to XCode by hand.
+- After changes on the ObjectBox models, the generator needs to be executed manually. This is due to the fact that only Generator commands are allowed to write to the package directory, and ObjectBox generated `ObjectBox-models.json` file needs to be added to git.
