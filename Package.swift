@@ -34,11 +34,11 @@ let package = Package(
       name: "GeneratorCommand",
       capability: .command(
         intent: .custom(
-          verb: "objectbox-generator",  // this is what the user uses
-          description: "Does the ObjectBox Model generation, and we will add some more text here"
+          verb: "objectbox-generator", // users will call like 'swift package plugin <verb>'
+          description: "Runs the ObjectBox code generator"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate source files in the package directory")
+          .writeToPackageDirectory(reason: "Generate files in the package directory")
         ]
       ),
       dependencies: [
