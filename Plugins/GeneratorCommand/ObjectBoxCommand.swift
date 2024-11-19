@@ -94,12 +94,13 @@ struct GeneratorCommand: CommandPlugin {
       ? context.package.targets
       : try context.package.targets(named: targetNames)
 
-
     // Since the generator generates code even for targets that have no ObjectBox annotations at all,
     // restrict the target to not generate code for targets like tests ...
     if targets.count > 1 {
       let availableTargetNames = targets.map { $0.name }.joined(separator: ", ")
-      Diagnostics.error("Multiple targets found\nPlease select specify one target by using the `--target name` option\nAvailable target names: \(availableTargetNames)")
+      Diagnostics.error(
+        "Multiple targets found\nPlease select specify one target by using the `--target name` option\nAvailable target names: \(availableTargetNames)"
+      )
       return
     } else if targets.isEmpty {
       Diagnostics.error("No target found")
@@ -108,7 +109,7 @@ struct GeneratorCommand: CommandPlugin {
       print("Have one target \(targets[0].name)")
     }
 
-    print("Remove updated version 1") // some debug to see if latest git version is fetched, or if some cache is used
+    print("Remove updated version 1")  // some debug to see if latest git version is fetched, or if some cache is used
 
     for target in targets {
       guard let target = target.sourceModule else { continue }
@@ -202,8 +203,12 @@ struct GeneratorCommand: CommandPlugin {
       runGenerator(generator: tool, args: args)
 
       // TODO , figgure out how to add the generated folder to xcode within here
-      Diagnostics.remark("！ Don't forget to add the generated source file in 'ObjectBox-generated/EntityInfo.generated.swift' to the project, and to git if you want to keep it")
-      Diagnostics.remark("！ Don't forget to add the generated model file in 'ObjectBox-models.json' to git, this is important for the ObjectBox model generation")
+      Diagnostics.remark(
+        "！ Don't forget to add the generated source file in 'ObjectBox-generated/EntityInfo.generated.swift' to the project, and to git if you want to keep it"
+      )
+      Diagnostics.remark(
+        "！ Don't forget to add the generated model file in 'ObjectBox-models.json' to git, this is important for the ObjectBox model generation"
+      )
 
     }
 
