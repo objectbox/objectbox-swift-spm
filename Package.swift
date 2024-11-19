@@ -1,5 +1,6 @@
 // swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
+// API reference: https://developer.apple.com/documentation/packagedescription/package
 
 import PackageDescription
 import Foundation
@@ -8,7 +9,7 @@ let package = Package(
   name: "ObjectBox",
 
   products: [
-    .plugin(name: "GeneratorCommand", targets: ["GeneratorCommand"]),
+    .plugin(name: "ObjectBoxPlugin", targets: ["ObjectBoxGeneratorCommand"]),
     .library(
       name: "ObjectBox.xcframework",  targets: ["ObjectBox.xcframework"]
     ),
@@ -31,7 +32,7 @@ let package = Package(
 
     /// MARK: - Plugin implementations
     .plugin(
-      name: "GeneratorCommand",
+      name: "ObjectBoxGeneratorCommand",
       capability: .command(
         intent: .custom(
           verb: "objectbox-generator", // users will call like 'swift package plugin <verb>'
