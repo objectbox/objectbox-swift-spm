@@ -105,12 +105,9 @@ struct GeneratorCommand: CommandPlugin {
     } else if targets.isEmpty {
       Diagnostics.error("No target found")
       return
-    } else {
-      print("Have one target \(targets[0].name)")
     }
 
-    print("Remove updated version 1")  // some debug to see if latest git version is fetched, or if some cache is used
-
+    // This processes all targets, but above code ensures there is only one
     for target in targets {
       guard let target = target.sourceModule else { continue }
 
