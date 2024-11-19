@@ -1,0 +1,12 @@
+stages:
+  - verify
+
+verify_manifest:
+  stage: verify
+  tags: [mac, x64, xcode]
+  before_script:
+    - xcodebuild -version
+    - swift -version
+  script:
+    # If the Package.swift file has an error, this command will print it
+    - swift package describe
