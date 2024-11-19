@@ -1,12 +1,17 @@
 stages:
   - verify
 
-verify_manifest:
+lint_code_and_check_manifest:
   stage: verify
   tags: [mac, x64, xcode]
   before_script:
     - xcodebuild -version
     - swift -version
   script:
+    # swift-format (https://github.com/swiftlang/swift-format) is currently installed
+    # via Homebrew. With Swift 6 it will be available as `swift format`.
+    # --recursive to look in any sub-directories
+    # --strict to return an error if there is a warning
+    - swift-format lint --recursive --strict .
     # If the Package.swift file has an error, this command will print it
     - swift package describe
