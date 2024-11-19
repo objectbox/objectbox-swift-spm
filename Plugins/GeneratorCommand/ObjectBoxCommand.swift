@@ -21,6 +21,10 @@ import PackagePlugin
 // - the stencil template file should be in the plugin directory, and be accessed from there
 // - XCode way needs to adopt paths ... find the common path from the model files, and work there
 
+/// This is used when the command plugin is used from a Swift package
+/// (so when running via the swift package plugin command).
+///
+/// Also see the ``XcodeCommandPlugin`` extension below.
 @main
 struct GeneratorCommand: CommandPlugin {
 
@@ -75,7 +79,7 @@ struct GeneratorCommand: CommandPlugin {
 
   func performCommand(context: PluginContext, arguments: [String]) throws {
 
-    // keep for now as a reminder to check if we process args, or not
+    // keep for now as a reminder to check if args are processed, or not
     let tool = try context.tool(named: "objectbox-generator")
     print("Processing arguments:: \(arguments)")
     if arguments.count == 1 {
@@ -132,15 +136,10 @@ struct GeneratorCommand: CommandPlugin {
 #if canImport(XcodeProjectPlugin)
   import XcodeProjectPlugin
 
+  /// This is used when the command plugin is used from an Xcode project
   extension GeneratorCommand: XcodeCommandPlugin {
 
     func performCommand(context: XcodePluginContext, arguments: [String]) throws {
-
-      // TODO , this is more complex than the PackagePlugin version
-      // XCode has no structure,
-      // Probably just print a message to work with the cocoapod right now
-      // but lets try and see how far we can come
-
       let tool = try context.tool(named: "objectbox-generator")
 
       var argExtractor = ArgumentExtractor(arguments)
@@ -165,13 +164,12 @@ struct GeneratorCommand: CommandPlugin {
       }
 
       if inputFiles == nil {
-        Diagnostics.warning("Target \(targetName) has not files")
+        Diagnostics.warning("Target \(targetName) has no files")
         return
       }
 
       var sourcesArgs: [String] = []
       for inputFile in inputFiles! {
-        //inputFile.path.string
         if inputFile.path.string.hasSuffix(".swift") {
           sourcesArgs.append("--sources")
           sourcesArgs.append(inputFile.path.string)
@@ -199,7 +197,7 @@ struct GeneratorCommand: CommandPlugin {
 
       runGenerator(generator: tool, args: args)
 
-      // TODO , figgure out how to add the generated folder to xcode within here
+      // TODO Add the generated files to the Xcode project
       Diagnostics.remark(
         "！ Don't forget to add the generated source file in 'ObjectBox-generated/EntityInfo.generated.swift' to the project, and to git if you want to keep it"
       )
