@@ -19,7 +19,6 @@ import PackagePlugin
 
 // There are a few things to do
 // - the stencil template file should be in the plugin directory, and be accessed from there
-// - XCode way needs to adopt paths ... find the common path from the model files, and work there
 
 /// This is used when the command plugin is used from a Swift package
 /// (so when running via the swift package plugin command).
@@ -28,7 +27,36 @@ import PackagePlugin
 @main
 struct GeneratorCommand: CommandPlugin {
 
-  func runGenerator(generator: PluginContext.Tool, args: [String]) {
+  // Path should match with CocoaPods setup for easy migration
+  private func buildModelJsonFilePath(targetName: String) -> String {
+    return "model-\(targetName).json"
+  }
+
+  // Path should match with CocoaPods setup for easy migration
+  private func buildEntityInfoFilePath(targetName: String) -> String {
+    return "generated/EntityInfo-\(targetName).generated.swift"
+  }
+
+  private func runGenerator(
+    generator: PluginContext.Tool, targetPath: Path, codeFilePath: String, modelFilePath: String
+  ) {
+    let modelFileTargetPath = targetPath.appending(modelFilePath).string
+    let codeFileTargetPath = targetPath.appending(codeFilePath).string
+
+    // Specify --sources for Xcode project setup as well, Sourcery does not seem able to detect Xcode project
+    let args: [String] = [
+      "--sources", targetPath.string,
+      "--model-json", modelFileTargetPath,
+      "--output", codeFileTargetPath,
+      "--disableCache",
+      "--verbose",
+      "--no-statistics",
+    ]
+
+    runGenerator(generator: generator, args: args)
+  }
+
+  private func runGenerator(generator: PluginContext.Tool, args: [String]) {
 
     let generatorUrl = URL(fileURLWithPath: generator.path.string)
 
@@ -117,18 +145,11 @@ struct GeneratorCommand: CommandPlugin {
 
       let targetPath = target.directory
       print("Generating ObjectBox code for \(target.name) at \(targetPath)")
-
-      let args: [String] = [
-        "--sources", targetPath.string,
-        "--model-json", targetPath.appending("ObjectBox-models.json").string,
-        "--output", targetPath.appending("ObjectBox-generated").string,
-        "--disableCache",
-        "--verbose",
-        "--no-statistics",
-      ]
-
-      runGenerator(generator: tool, args: args)
-
+      let codeFilePath = buildEntityInfoFilePath(targetName: target.name)
+      let modelFilePath = buildModelJsonFilePath(targetName: target.name)
+      runGenerator(
+        generator: tool, targetPath: targetPath, codeFilePath: codeFilePath,
+        modelFilePath: modelFilePath)
     }
   }
 }
@@ -183,26 +204,19 @@ struct GeneratorCommand: CommandPlugin {
       }
 
       let targetPath = context.xcodeProject.directory
-      let outputFolder = targetPath.appending("ObjectBox-generated").string
-      let jsonModel = targetPath.appending("ObjectBox-models.json").string
+      let codeFilePath = buildEntityInfoFilePath(targetName: targetName)
+      let modelFilePath = buildModelJsonFilePath(targetName: targetName)
 
-      let args: [String] =
-        sourcesArgs + [
-          "--model-json", jsonModel,
-          "--output", outputFolder,
-          "--disableCache",
-          "--verbose",
-          "--no-statistics",
-        ]
-
-      runGenerator(generator: tool, args: args)
+      runGenerator(
+        generator: tool, targetPath: targetPath, codeFilePath: codeFilePath,
+        modelFilePath: modelFilePath)
 
       // TODO Add the generated files to the Xcode project
       Diagnostics.remark(
-        "！ Don't forget to add the generated source file in 'ObjectBox-generated/EntityInfo.generated.swift' to the project, and to git if you want to keep it"
+        "！ Add the generated source file in '\(codeFilePath)' to the project and version control"
       )
       Diagnostics.remark(
-        "！ Don't forget to add the generated model file in 'ObjectBox-models.json' to git, this is important for the ObjectBox model generation"
+        "！ Add the generated model file in '\(modelFilePath)' to version control, this is important for ObjectBox model generation"
       )
 
     }
