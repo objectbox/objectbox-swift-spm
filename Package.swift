@@ -7,6 +7,10 @@ import PackageDescription
 
 let package = Package(
   name: "ObjectBox",
+  platforms: [
+    // This should match the requirements of ObjectBox.xcframework (so the ObjectBox Swift API and native libraries)
+    .macOS(.v10_15), .iOS(.v12),
+  ],
   products: [
     .plugin(name: "ObjectBoxPlugin", targets: ["ObjectBoxGeneratorCommand"]),
     .library(name: "ObjectBox.xcframework", targets: ["ObjectBox.xcframework"]),
