@@ -1,17 +1,19 @@
 // swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
+// API reference: https://developer.apple.com/documentation/packagedescription/package
 
-import PackageDescription
 import Foundation
+import PackageDescription
 
 let package = Package(
   name: "ObjectBox",
-
+  platforms: [
+    // This should match the requirements of ObjectBox.xcframework (so the ObjectBox Swift API and native libraries)
+    .macOS(.v10_15), .iOS(.v12),
+  ],
   products: [
-    .plugin(name: "GeneratorCommand", targets: ["GeneratorCommand"]),
-    .library(
-      name: "ObjectBox.xcframework",  targets: ["ObjectBox.xcframework"]
-    ),
+    .plugin(name: "ObjectBoxPlugin", targets: ["ObjectBoxGeneratorCommand"]),
+    .library(name: "ObjectBox.xcframework", targets: ["ObjectBox.xcframework"]),
   ],
   targets: [
 
@@ -19,26 +21,26 @@ let package = Package(
     .binaryTarget(
       name: "ObjectBoxGenerator",
       url:
-        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/SPM-preview1/ObjectBoxGenerator.artifactbundle.zip",
-      checksum: "62d3e8d9e7141ef75462c8f8f08e6334def0b80f946053550ff7c6789c3187f9"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.0.2-rc1/ObjectBoxGenerator.artifactbundle.zip",
+      checksum: "a2942a8bedb5790956e4961be773270cfcf02b6a277f3eae00477bd056cb0187"
     ),
     .binaryTarget(
       name: "ObjectBox.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/SPM-preview1/ObjectBox.xcframework.zip",
-      checksum: "3222f5d3eec6f91a1d47f3a7acfec47c99bd7b2eeec27948fddd58bb8a9dd18e"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.0.2-rc1/ObjectBox.xcframework.zip",
+      checksum: "b369a4b4fc57c8f7c7620f275ed1b0f62970cf612e68f47382d44ce311d52c11"
     ),
 
     /// MARK: - Plugin implementations
     .plugin(
-      name: "GeneratorCommand",
+      name: "ObjectBoxGeneratorCommand",
       capability: .command(
         intent: .custom(
-          verb: "objectbox-generator",  // this is what the user uses
-          description: "Does the ObjectBox Model generation, and we will add some more text here"
+          verb: "objectbox-generator",  // users will call like 'swift package plugin <verb>'
+          description: "Runs the ObjectBox code generator"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate source files in the package directory")
+          .writeToPackageDirectory(reason: "Generate files in the package directory")
         ]
       ),
       dependencies: [
@@ -49,4 +51,3 @@ let package = Package(
 
   ]
 )
-
