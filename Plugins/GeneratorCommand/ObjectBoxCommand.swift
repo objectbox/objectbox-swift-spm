@@ -109,7 +109,7 @@ struct GeneratorCommand: CommandPlugin {
 
     // keep for now as a reminder to check if args are processed, or not
     let tool = try context.tool(named: "objectbox-generator")
-    print("Processing arguments:: \(arguments)")
+    print("Processing arguments: \(arguments)")
     if arguments.count == 1 {
       if arguments[0] == "context" {
         dump(context)
