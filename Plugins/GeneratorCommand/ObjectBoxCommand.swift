@@ -185,23 +185,25 @@ struct GeneratorCommand: CommandPlugin {
         }
       }
 
+      // This is some additional validation that the Xcode target has Swift source files.
+      // However, this appears to not work for all Xcode targets, so just print warnings
+      // and continue anyhow as the generator might still find source files (it looks based on the directory).
       if inputFiles == nil {
         // File list can be empty, but should never be nil
-        Diagnostics.error("Target \(targetName) has no files\n")
-        return
-      }
-
-      var swiftSourceFiles: [String] = []
-      for inputFile in inputFiles! {
-        if inputFile.path.string.hasSuffix(".swift") {
-          swiftSourceFiles.append(inputFile.path.string)
+        Diagnostics.warning("Target \(targetName) has no files, generator might fail\n")
+      } else {
+        var swiftSourceFiles: [String] = []
+        for inputFile in inputFiles! {
+          if inputFile.path.string.hasSuffix(".swift") {
+            swiftSourceFiles.append(inputFile.path.string)
+          }
         }
-      }
 
-      if swiftSourceFiles.isEmpty {
-        // Only warn in case this is run on a target that has no Swift files
-        Diagnostics.warning("No Swift files found in Target \(targetName)\n")
-        return
+        if swiftSourceFiles.isEmpty {
+          // Just warn instead of error in case this is run on a target that has no Swift files
+          Diagnostics.warning(
+            "No Swift files found in Target \(targetName), model might be empty\n")
+        }
       }
 
       let targetPath = context.xcodeProject.directory
