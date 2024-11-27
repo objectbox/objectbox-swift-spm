@@ -109,7 +109,7 @@ struct GeneratorCommand: CommandPlugin {
 
     // keep for now as a reminder to check if args are processed, or not
     let tool = try context.tool(named: "objectbox-generator")
-    print("Processing arguments:: \(arguments)")
+    print("Processing arguments: \(arguments)")
     if arguments.count == 1 {
       if arguments[0] == "context" {
         dump(context)
@@ -131,7 +131,7 @@ struct GeneratorCommand: CommandPlugin {
     if targets.count > 1 {
       let availableTargetNames = targets.map { $0.name }.joined(separator: ", ")
       Diagnostics.error(
-        "Multiple targets found\nPlease select specify one target by using the `--target name` option\nAvailable target names: \(availableTargetNames)"
+        "Multiple targets found\nPlease select specify one target by using the `--target <name>` option\nAvailable target names: \(availableTargetNames)"
       )
       return
     } else if targets.isEmpty {
@@ -170,8 +170,9 @@ struct GeneratorCommand: CommandPlugin {
         Diagnostics.error(
           """
             \(targetNames.count) target names given: \(targetNames)
-            Please select exact 1 target
+            Please select exactly 1 target
           """)
+        return
       }
 
       let targetName = targetNames[0]
@@ -179,28 +180,30 @@ struct GeneratorCommand: CommandPlugin {
       var inputFiles: PackagePlugin.FileList?
       for target in context.xcodeProject.targets {
         if target.product?.name == targetName {
-          Diagnostics.remark("Found target \(targetName)")
+          Diagnostics.remark("Found target \(targetName)\n")
           inputFiles = target.inputFiles
         }
       }
 
+      // This is some additional validation that the Xcode target has Swift source files.
+      // However, this appears to not work for all Xcode targets, so just print warnings
+      // and continue anyhow as the generator might still find source files (it looks based on the directory).
       if inputFiles == nil {
-        Diagnostics.warning("Target \(targetName) has no files")
-        return
-      }
-
-      var sourcesArgs: [String] = []
-      for inputFile in inputFiles! {
-        if inputFile.path.string.hasSuffix(".swift") {
-          sourcesArgs.append("--sources")
-          sourcesArgs.append(inputFile.path.string)
+        // File list can be empty, but should never be nil
+        Diagnostics.warning("Target \(targetName) has no files, generator might fail\n")
+      } else {
+        var swiftSourceFiles: [String] = []
+        for inputFile in inputFiles! {
+          if inputFile.path.string.hasSuffix(".swift") {
+            swiftSourceFiles.append(inputFile.path.string)
+          }
         }
-      }
 
-      if sourcesArgs.isEmpty {
-        // TODO probably error
-        Diagnostics.warning("No Swift files found in Target \(targetName) ")
-        return
+        if swiftSourceFiles.isEmpty {
+          // Just warn instead of error in case this is run on a target that has no Swift files
+          Diagnostics.warning(
+            "No Swift files found in Target \(targetName), model might be empty\n")
+        }
       }
 
       let targetPath = context.xcodeProject.directory
@@ -213,10 +216,10 @@ struct GeneratorCommand: CommandPlugin {
 
       // TODO Add the generated files to the Xcode project
       Diagnostics.remark(
-        "！ Add the generated source file in '\(codeFilePath)' to the project and version control"
+        "！ Add the generated source file in '\(codeFilePath)' to the project and version control\n"
       )
       Diagnostics.remark(
-        "！ Add the generated model file in '\(modelFilePath)' to version control, this is important for ObjectBox model generation"
+        "！ Add the generated model file in '\(modelFilePath)' to version control, this is important for ObjectBox model generation\n"
       )
 
     }
