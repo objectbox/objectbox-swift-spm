@@ -21,14 +21,14 @@ let package = Package(
     .binaryTarget(
       name: "ObjectBoxGenerator",
       url:
-        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.0.2-rc2/ObjectBoxGenerator.artifactbundle.zip",
-      checksum: "003d51095ded2e025fbed2b8eebe516f8a65b73cd2120a9cd56e04988cc19a22"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.3.0/ObjectBoxGenerator.artifactbundle.zip",
+      checksum: "e0a04312a39a1b0319911b6dae4710511aa999c18d1d12436f0c34068f229c40"
     ),
     .binaryTarget(
       name: "ObjectBox.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.0.2-rc2/ObjectBox.xcframework.zip",
-      checksum: "faf3be62eefe3081d5bc507f22bc13a9b826d42849ac1971545fbecbb5d0286d"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.3.0/ObjectBox.xcframework.zip",
+      checksum: "465a457973841c0bdbec974d4a30882a0a57090688884adcd77b1fdc573938d6"
     ),
 
     /// MARK: - Plugin implementations
