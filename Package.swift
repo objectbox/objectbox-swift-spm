@@ -14,6 +14,7 @@ let package = Package(
   products: [
     .plugin(name: "ObjectBoxPlugin", targets: ["ObjectBoxGeneratorCommand"]),
     .library(name: "ObjectBox.xcframework", targets: ["ObjectBox.xcframework"]),
+    .library(name: "ObjectBox-Sync.xcframework", targets: ["ObjectBox-Sync.xcframework"]),
   ],
   targets: [
 
@@ -29,6 +30,12 @@ let package = Package(
       url:
         "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.3.0/ObjectBox.xcframework.zip",
       checksum: "465a457973841c0bdbec974d4a30882a0a57090688884adcd77b1fdc573938d6"
+    ),
+    .binaryTarget(
+      name: "ObjectBox-Sync.xcframework",
+      url:
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/v4.3.0/ObjectBox-Sync.xcframework.zip",
+      checksum: "38ce5ca16a66cee3bb075e5ec2c244bcb19bc7e984099df05871ef19bba6788e"
     ),
 
     /// MARK: - Plugin implementations
