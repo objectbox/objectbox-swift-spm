@@ -177,39 +177,13 @@ struct GeneratorCommand: CommandPlugin {
 
       let targetName = targetNames[0]
 
-      var inputFiles: PackagePlugin.FileList?
-      for target in context.xcodeProject.targets {
-        if target.product?.name == targetName {
-          Diagnostics.remark("Found target \(targetName)\n")
-          inputFiles = target.inputFiles
-        }
-      }
-
-      // This is some additional validation that the Xcode target has Swift source files.
-      // However, this appears to not work for all Xcode targets, so just print warnings
-      // and continue anyhow as the generator might still find source files (it looks based on the directory).
-      if inputFiles == nil {
-        // File list can be empty, but should never be nil
-        Diagnostics.warning("Target \(targetName) has no files, generator might fail\n")
-      } else {
-        var swiftSourceFiles: [String] = []
-        for inputFile in inputFiles! {
-          if inputFile.path.string.hasSuffix(".swift") {
-            swiftSourceFiles.append(inputFile.path.string)
-          }
-        }
-
-        if swiftSourceFiles.isEmpty {
-          // Just warn instead of error in case this is run on a target that has no Swift files
-          Diagnostics.warning(
-            "No Swift files found in Target \(targetName), model might be empty\n")
-        }
-      }
-
       let targetPath = context.xcodeProject.directory
       let codeFilePath = buildEntityInfoFilePath(targetName: targetName)
       let modelFilePath = buildModelJsonFilePath(targetName: targetName)
 
+      // Note: not finding source files via context.xcodeProject.targets[0].inputFiles as for some projects not all
+      // files appear to exist there (possibly related to "buildable folders"), just pass the target directory to
+      // the generator and let it find source files.
       runGenerator(
         generator: tool, targetPath: targetPath, codeFilePath: codeFilePath,
         modelFilePath: modelFilePath)
