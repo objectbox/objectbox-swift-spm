@@ -50,7 +50,6 @@ struct GeneratorCommand: CommandPlugin {
       "--output", codeFileTargetPath,
       "--disableCache",
       "--verbose",
-      "--no-statistics",
     ]
 
     runGenerator(generator: generator, args: args)
