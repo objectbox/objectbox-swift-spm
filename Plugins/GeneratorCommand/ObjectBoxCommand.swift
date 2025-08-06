@@ -37,20 +37,39 @@ struct GeneratorCommand: CommandPlugin {
     return "generated/EntityInfo-\(targetName).generated.swift"
   }
 
+  // Removes the `--target` option and its value from the arguments array
+  // This is needed because the `--target` option is not recognized by the Sourcery executable
+  private func removeTargetNameFromArgs(_ args: [String]) -> [String] {
+    var filteredArgs = args
+    if let targetIndex = filteredArgs.firstIndex(of: "--target") {
+      // Remove --target and the following value (target name)
+      filteredArgs.remove(at: targetIndex)
+      if targetIndex < filteredArgs.count {
+        filteredArgs.remove(at: targetIndex)
+      }
+    }
+    return filteredArgs
+  }
+
   private func runGenerator(
-    generator: PluginContext.Tool, targetPath: Path, codeFilePath: String, modelFilePath: String
+    generator: PluginContext.Tool, targetPath: Path, codeFilePath: String, modelFilePath: String,
+    args: [String] = []
   ) {
     let modelFileTargetPath = targetPath.appending(modelFilePath).string
     let codeFileTargetPath = targetPath.appending(codeFilePath).string
 
+    // The generator does not support the --target argument and would error, remove it
+    let filteredArgs = removeTargetNameFromArgs(args)
+
     // Specify --sources for Xcode project setup as well, Sourcery does not seem able to detect Xcode project
-    let args: [String] = [
-      "--sources", targetPath.string,
-      "--model-json", modelFileTargetPath,
-      "--output", codeFileTargetPath,
-      "--disableCache",
-      "--verbose",
-    ]
+    let args: [String] =
+      [
+        "--sources", targetPath.string,
+        "--model-json", modelFileTargetPath,
+        "--output", codeFileTargetPath,
+        "--disableCache",
+        "--verbose",
+      ] + filteredArgs
 
     runGenerator(generator: generator, args: args)
   }
@@ -148,7 +167,7 @@ struct GeneratorCommand: CommandPlugin {
       let modelFilePath = buildModelJsonFilePath(targetName: target.name)
       runGenerator(
         generator: tool, targetPath: targetPath, codeFilePath: codeFilePath,
-        modelFilePath: modelFilePath)
+        modelFilePath: modelFilePath, args: arguments)
     }
   }
 }
@@ -185,7 +204,7 @@ struct GeneratorCommand: CommandPlugin {
       // the generator and let it find source files.
       runGenerator(
         generator: tool, targetPath: targetPath, codeFilePath: codeFilePath,
-        modelFilePath: modelFilePath)
+        modelFilePath: modelFilePath, args: arguments)
 
       // TODO Add the generated files to the Xcode project
       Diagnostics.remark(
