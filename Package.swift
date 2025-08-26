@@ -47,7 +47,11 @@ let package = Package(
           description: "Runs the ObjectBox code generator"
         ),
         permissions: [
-          .writeToPackageDirectory(reason: "Generate files in the package directory")
+          .writeToPackageDirectory(reason: "Generate files in the package directory"),
+          .allowNetworkConnections(
+            scope: .all(ports: []),
+            reason: "Sending generator analytics to the ObjectBox team"
+          ),
         ]
       ),
       dependencies: [
