@@ -68,7 +68,6 @@ struct GeneratorCommand: CommandPlugin {
         "--model-json", modelFileTargetPath,
         "--output", codeFileTargetPath,
         "--disableCache",
-        "--verbose",
       ] + filteredArgs
 
     runGenerator(generator: generator, args: args)
