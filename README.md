@@ -1,6 +1,6 @@
 # ObjectBox Swift Package
 
-**Visit the ➡️ [Install ObjectBox Swift](https://swift.objectbox.io/install#swift-package) page to see how to use this Swift package.**
+**Visit the ➡️ [Get Started with ObjectBox Swift](https://swift.objectbox.io/getting-started) page to see how to use this Swift package.**
 
 This repository only hosts the ObjectBox Swift package.
 
