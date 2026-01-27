@@ -22,20 +22,20 @@ let package = Package(
     .binaryTarget(
       name: "ObjectBoxGenerator",
       url:
-        "https://github.com/objectbox/objectbox-swift-spm/releases/download/5.1.1/ObjectBoxGenerator.artifactbundle.zip",
-      checksum: "cbcc16c6ceea7751e61436b6f3b1e3ed7d7498ed9bf7a65a0fea764613c2d4f0"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/5-preview/ObjectBoxGenerator-5.2.0-rc7.artifactbundle.zip",
+      checksum: "08b418df7276d6f0e2f1ac480246aa2980745c70874019061817e2c71c118d46"
     ),
     .binaryTarget(
       name: "ObjectBox.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spm/releases/download/5.1.1/ObjectBox.xcframework.zip",
-      checksum: "8e52ba8a09e6bc150a1b9d33a7dfb6e1d00c1f363656abdbbdd51a14177b1577"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/5-preview/ObjectBox-5.2.0-rc7.xcframework.zip",
+      checksum: "bda990cef1443839e5ccfb996519f8653046bde0b06b898d53a5732dc48b8f47"
     ),
     .binaryTarget(
       name: "ObjectBox-Sync.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spm/releases/download/5.1.1/ObjectBox-Sync.xcframework.zip",
-      checksum: "a4bc6ceca80ed80226be0306200682f654951eff7bd2e67400745de1f32e89d0"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/5-preview/ObjectBox-Sync-5.2.0-rc7.xcframework.zip",
+      checksum: "98a5be634d36a1cb31ef27b8196a9ac105af7c4b90f9e37edc8b0361a658f612"
     ),
 
     /// MARK: - Plugin implementations
