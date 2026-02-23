@@ -3,7 +3,7 @@ stages:
 
 lint_code_and_check_manifest:
   stage: verify
-  tags: [mac, x64, xcode]
+  tags: [mac, xcode]
   before_script:
     - xcodebuild -version
     - swift -version
