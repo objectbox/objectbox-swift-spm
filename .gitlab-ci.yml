@@ -8,10 +8,10 @@ lint_code_and_check_manifest:
     - xcodebuild -version
     - swift -version
   script:
-    # swift-format (https://github.com/swiftlang/swift-format) is currently installed
-    # via Homebrew. With Swift 6 it will be available as `swift format`.
+    # The swift-format (https://github.com/swiftlang/swift-format) version 
+    # included in the Swift Toolchain (Swift 6 and above) is used.
     # --recursive to look in any sub-directories
     # --strict to return an error if there is a warning
-    - swift-format lint --recursive --strict .
+    - swift format lint --recursive --strict .
     # If the Package.swift file has an error, this command will print it
     - swift package describe
