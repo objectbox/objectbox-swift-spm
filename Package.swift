@@ -35,7 +35,7 @@ let package = Package(
     // pinned to the revision the add-on was tested with.
     .package(
       url: "https://github.com/google/nearby.git",
-      revision: "45680b6783b2f2cab074c56ac658a7ed7ba1c16c")
+      revision: "282f86dc9162da2d3eb2309bda0e9ac0b291855a")
   ],
   targets: [
 
@@ -43,20 +43,20 @@ let package = Package(
     .binaryTarget(
       name: "ObjectBoxGenerator",
       url:
-        "https://github.com/objectbox/objectbox-swift-spm/releases/download/5.3.0/ObjectBoxGenerator.artifactbundle.zip",
-      checksum: "bff94e954c9f213fa9917200071f21d9924cc1e40ce5803f5ce2e8b74ada19ae"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/6-preview/ObjectBoxGenerator-6.0.0-rc.artifactbundle.zip",
+      checksum: "9080521a34f9c5ba3114e12dca6598eeb97f94a8d66af8f9b6f73215171f666b"
     ),
     .binaryTarget(
       name: "ObjectBox.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spm/releases/download/5.3.0/ObjectBox.xcframework.zip",
-      checksum: "91c862d8487af68e1d03a3275a2b946e31a872a5ebd440f86725d247602c3c53"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/6-preview/ObjectBox-6.0.0-rc.xcframework.zip",
+      checksum: "589ca9c5e589377a30863cb7a4dbcc9d8ea16052e81470deca29b741a8318972"
     ),
     .binaryTarget(
       name: "ObjectBox-Sync.xcframework",
       url:
-        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/6-preview/ObjectBox-Sync-6.0.0-beta.2.xcframework.zip",
-      checksum: "f4f2d270ba956801f824faf3f3b181b6421c2269ced9b12a32872225ea0bc52c"
+        "https://github.com/objectbox/objectbox-swift-spec-staging/releases/download/6-preview/ObjectBox-Sync-6.0.0-rc.xcframework.zip",
+      checksum: "9d3f79acce8e5fc334717683e91e987287b9d7a78f6897215302167420e0d8a7"
     ),
 
     /// MARK: - Plugin implementations

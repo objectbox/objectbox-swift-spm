@@ -53,10 +53,14 @@ extension MeshConfig {
 
     /// Optionally restricts the Nearby mediums used for advertising and discovery; nil (the default) does not
     /// restrict them, Nearby then uses all mediums it supports. E.g. `[.wifiLAN]` avoids Bluetooth (including its
-    /// permission prompt) when all nodes share a network. Set it before starting the sync client; later changes
-    /// are ignored. Nearby-specific, thus only available on Apple platforms (Android's Nearby API does not offer
-    /// medium selection). Reads and writes go to the Nearby transport of this config (see
-    /// ``NearbyMeshNetwork/mediums``); without one, reads give nil and writes do nothing.
+    /// permission prompt) when all nodes share a network.
+    /// With the current Nearby revision, only `.ble` and `.wifiLAN` advertise and discover on Apple platforms: Nearby
+    /// compiles Wi-Fi Aware out of its SwiftPM build, disables AWDL by default and has no Bluetooth Classic on Apple;
+    /// the others are only used to upgrade connections, if at all.
+    /// Set it before starting the sync client; later changes are ignored. Nearby-specific, thus only available on
+    /// Apple platforms (Android's Nearby API does not offer medium selection). Reads and writes go to the Nearby
+    /// transport of this config (see ``NearbyMeshNetwork/mediums``); without one, reads give nil and writes do
+    /// nothing.
     public var nearbyMediums: Set<Medium>? {
         get { nearbyTransport?.mediums }
         set { nearbyTransport?.mediums = newValue }

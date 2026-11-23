@@ -26,9 +26,12 @@ final class UncheckedSendableBox<T>: @unchecked Sendable {
 /// ID), not on construction: creating a `ConnectionManager` already initializes Nearby's medium stacks
 /// (e.g. Bluetooth, which may prompt on macOS), so this keeps an unused configuration radio-silent.
 ///
-/// Threading: outbound calls arrive on the ObjectBox mesh sync thread and are handed to the non-blocking
-/// Nearby API; Nearby delegate callbacks arrive on a dedicated serial queue and are fed back to the core
-/// via the ``MeshNetwork`` bridge (whose event methods are thread-safe).
+/// Threading: outbound calls arrive on the ObjectBox mesh sync thread; their calls into the (non-blocking) Nearby
+/// API are queued to `nearbyQueue`, the serial queue Nearby also delivers its delegate callbacks on. Nearby's Swift
+/// objects are not thread-safe: e.g. `ConnectionManager` tracks transfers in a dictionary it also updates on that
+/// queue, without a lock; sending from the mesh sync thread crashed (seen in run-two-local-nodes-test.sh, and
+/// reported by the Thread Sanitizer). Queuing all calls also keeps them in order. The delegate callbacks feed
+/// events back to the core via the ``MeshNetwork`` bridge (whose event methods are thread-safe).
 public final class NearbyMeshNetwork {
 
     /// Max size of a single Nearby `BYTES` payload; mirrors Android's
@@ -58,6 +61,9 @@ public final class NearbyMeshNetwork {
     /// Optionally restricts the Nearby mediums used for advertising and discovery; nil (the default) does not
     /// restrict them, Nearby then uses all mediums it supports. E.g. `[.wifiLAN]` avoids Bluetooth entirely
     /// (including its permission prompt) when all nodes are on the same network - also used by the smoke test.
+    /// With the current Nearby revision, only `.ble` and `.wifiLAN` advertise and discover on Apple platforms: Nearby
+    /// compiles Wi-Fi Aware out of its SwiftPM build, disables AWDL by default and has no Bluetooth Classic on Apple;
+    /// the others are only used to upgrade connections, if at all.
     /// Set it before the sync client (and thus this transport) starts; later changes are ignored.
     /// Note: Nearby always uses all mediums for outgoing connection requests, the restriction applies to
     /// advertising and discovery only. Thread-safe.
@@ -69,7 +75,10 @@ public final class NearbyMeshNetwork {
     /// Set once ``start(meshId:)`` ran; from then on ``mediums`` is frozen (guarded by `lock`)
     private var started = false
 
-    private let delegateQueue = DispatchQueue(label: "io.objectbox.mesh.nearby")
+    /// For everything touching Nearby's objects: our calls and its delegate callbacks (see the threading notes).
+    /// Shared by all instances, as they drive one process-wide Nearby core: e.g. a stopped transport's queued
+    /// teardown then still precedes the start of a transport created after it.
+    private static let nearbyQueue = DispatchQueue(label: "io.objectbox.mesh.nearby")
 
     /// Set once by `start(meshId:)`, the guaranteed first outbound call; only touched by the outbound calls,
     /// which arrive sequentially on the mesh sync thread (the delegate callbacks get their objects as parameters).
@@ -84,12 +93,18 @@ public final class NearbyMeshNetwork {
     /// Endpoints we requested a connection to (outgoing); incoming requests are checked in the
     /// advertiser delegate instead.
     private var outgoingRequests = Set<EndpointID>()
+    /// Incoming connection requests we accepted that are still handshaking (not yet connected/rejected)
+    private var pendingIncoming = Set<EndpointID>()
     private var connectedEndpoints = Set<EndpointID>()
     /// Incoming STREAM payloads being reassembled, and those Nearby reported as failed/canceled meanwhile
     private var incomingStreams = Set<PayloadID>()
     private var abortedIncomingStreams = Set<PayloadID>()
     private var advertising = false
     private var discovering = false
+    /// Bumped by each start/stop of advertising/discovery: a start completion arriving after a later stop (or
+    /// restart) is stale and must neither flip the state back nor report a result to the core.
+    private var advertisingGeneration = 0
+    private var discoveryGeneration = 0
 
     /// The bridge to the ObjectBox mesh sync core; set by ``AppleMeshSync/createConfig(meshId:)`` and
     /// severed (set to nil) when the core stops this transport. Thread-safe: read from Nearby's callbacks.
@@ -121,7 +136,7 @@ extension NearbyMeshNetwork: MeshNetworkTransport {
 
     public func start(meshId: String) {
         withLock { started = true }  // Freezes `mediums`
-        let nearby = Nearby(serviceId: meshId, queue: delegateQueue)
+        let nearby = Nearby(serviceId: meshId, queue: Self.nearbyQueue)
         nearby.connectionManager.delegate = self
         nearby.advertiser.delegate = self
         nearby.discoverer.delegate = self
@@ -130,91 +145,146 @@ extension NearbyMeshNetwork: MeshNetworkTransport {
 
     public func startAdvertising(endpointInfo: Data) -> Bool {
         guard let nearby = nearby else { return false }
+        let generation = withLock { () -> Int in
+            advertisingGeneration += 1
+            return advertisingGeneration
+        }
         let completion: (Error?) -> Void = { [weak self] error in
             guard let self = self else { return }
-            self.withLock { self.advertising = (error == nil) }
+            let current = self.withLock { () -> Bool in
+                guard self.advertisingGeneration == generation else { return false }
+                self.advertising = (error == nil)
+                return true
+            }
+            guard current else { return }  // Stopped (or restarted) meanwhile
             self.bridge?.advertisingResult(success: error == nil, errorMessage: error?.localizedDescription)
         }
         let endpointName = Self.encodeEndpointInfo(endpointInfo)  // Hex, like Android (see the coding helpers)
-        if let mediums = mediums {
-            nearby.advertiser.startAdvertising(using: endpointName, mediums: mediums, completionHandler: completion)
-        } else {
-            nearby.advertiser.startAdvertising(using: endpointName, completionHandler: completion)
+        let mediums = self.mediums
+        Self.nearbyQueue.async {
+            if let mediums = mediums {
+                nearby.advertiser.startAdvertising(
+                    using: endpointName, mediums: mediums,
+                    completionHandler: completion)
+            } else {
+                nearby.advertiser.startAdvertising(using: endpointName, completionHandler: completion)
+            }
         }
         return true
     }
 
     public func stopAdvertising() {
-        withLock { advertising = false }
-        nearby?.advertiser.stopAdvertising()
+        withLock {
+            advertising = false
+            advertisingGeneration += 1
+        }
+        guard let nearby = nearby else { return }
+        Self.nearbyQueue.async { nearby.advertiser.stopAdvertising() }
     }
 
     public func startDiscovery() -> Bool {
         guard let nearby = nearby else { return false }
+        let generation = withLock { () -> Int in
+            discoveryGeneration += 1
+            return discoveryGeneration
+        }
         let completion: (Error?) -> Void = { [weak self] error in
             guard let self = self else { return }
-            self.withLock { self.discovering = (error == nil) }
+            let current = self.withLock { () -> Bool in
+                guard self.discoveryGeneration == generation else { return false }
+                self.discovering = (error == nil)
+                return true
+            }
+            guard current else { return }  // Stopped (or restarted) meanwhile
             self.bridge?.discoveryStarted(success: error == nil)
         }
-        if let mediums = mediums {
-            nearby.discoverer.startDiscovery(mediums: mediums, completionHandler: completion)
-        } else {
-            nearby.discoverer.startDiscovery(completionHandler: completion)
+        let mediums = self.mediums
+        Self.nearbyQueue.async {
+            if let mediums = mediums {
+                nearby.discoverer.startDiscovery(mediums: mediums, completionHandler: completion)
+            } else {
+                nearby.discoverer.startDiscovery(completionHandler: completion)
+            }
         }
         return true
     }
 
     public func stopDiscovery() {
-        withLock { discovering = false }
-        nearby?.discoverer.stopDiscovery()
+        withLock {
+            discovering = false
+            discoveryGeneration += 1
+        }
+        guard let nearby = nearby else { return }
+        Self.nearbyQueue.async { nearby.discoverer.stopDiscovery() }
     }
 
     public func connect(endpointId: String, endpointInfo: Data) -> Bool {
         guard let nearby = nearby else { return false }
         withLock { _ = outgoingRequests.insert(endpointId) }
         let endpointName = Self.encodeEndpointInfo(endpointInfo)  // Hex, like Android (see the coding helpers)
-        nearby.discoverer.requestConnection(to: endpointId, using: endpointName) { [weak self] error in
-            guard let self = self, let error = error else { return }
-            self.withLock { _ = self.outgoingRequests.remove(endpointId) }
-            self.bridge?.connectionRequested(
-                endpointId: endpointId, success: false,
-                errorMessage: error.localizedDescription)
+        Self.nearbyQueue.async {
+            nearby.discoverer.requestConnection(to: endpointId, using: endpointName) { [weak self] error in
+                guard let self = self, let error = error else { return }
+                self.withLock { _ = self.outgoingRequests.remove(endpointId) }
+                self.bridge?.connectionRequested(
+                    endpointId: endpointId, success: false,
+                    errorMessage: error.localizedDescription)
+            }
         }
         return true
     }
 
     public func disconnect(endpointId: String) {
-        nearby?.connectionManager.disconnect(from: endpointId)
+        guard let nearby = nearby else { return }
+        Self.nearbyQueue.async { nearby.connectionManager.disconnect(from: endpointId) }
     }
 
+    /// Delivery is reported via `payloadSent` (informational for the core); a send failing after `stop()` (it is
+    /// queued, see the threading notes) reports to the then severed bridge, i.e. nowhere.
     public func send(endpointId: String, data: Data) -> Bool {
         guard let nearby = nearby else { return false }
-        if data.count <= Self.messageSizeLimit {
-            _ = nearby.connectionManager.send(data, to: [endpointId]) { [weak self] error in
+        Self.nearbyQueue.async { [weak self] in
+            let completion: (Error?) -> Void = { error in
                 self?.bridge?.payloadSent(endpointId: endpointId, success: error == nil)
             }
-        } else {
-            // A single message over the BYTES cap goes out as a STREAM payload (the large-TX-log path)
-            _ = nearby.connectionManager.startStream(InputStream(data: data), to: [endpointId]) { [weak self] error in
-                self?.bridge?.payloadSent(endpointId: endpointId, success: error == nil)
+            if data.count <= Self.messageSizeLimit {
+                _ = nearby.connectionManager.send(data, to: [endpointId], completionHandler: completion)
+            } else {
+                // A single message over the BYTES cap goes out as a STREAM payload (the large-TX-log path)
+                _ = nearby.connectionManager.startStream(
+                    InputStream(data: data), to: [endpointId],
+                    completionHandler: completion)
             }
         }
         return true
     }
 
     public func stop() {
-        let endpoints = withLock { () -> Set<EndpointID> in
+        withLock {
             advertising = false
             discovering = false
-            let connected = connectedEndpoints
-            connectedEndpoints.removeAll()
-            outgoingRequests.removeAll()
-            discoveredEndpointInfo.removeAll()
-            incomingStreams.removeAll()
-            abortedIncomingStreams.removeAll()
-            return connected
+            advertisingGeneration += 1
+            discoveryGeneration += 1
         }
-        if let nearby = nearby {
+        // Sever the bidirectional references (mirrors the Android transport's stop()); callbacks still queued then no
+        // longer reach the core (and reject connection requests)
+        bridge = nil
+        guard let nearby = nearby else { return }
+        // Queued like the other calls (keeps self until done); runs after the callbacks queued before it, which may
+        // still have added endpoints, so it collects them only now
+        Self.nearbyQueue.async {
+            let endpoints = self.withLock { () -> Set<EndpointID> in
+                // Also cancel connections still handshaking: they would otherwise complete after the delegates are
+                // detached below, untracked, and keep the radio link open
+                let toDisconnect = self.connectedEndpoints.union(self.outgoingRequests).union(self.pendingIncoming)
+                self.connectedEndpoints.removeAll()
+                self.outgoingRequests.removeAll()
+                self.pendingIncoming.removeAll()
+                self.discoveredEndpointInfo.removeAll()
+                self.incomingStreams.removeAll()
+                self.abortedIncomingStreams.removeAll()
+                return toDisconnect
+            }
             nearby.advertiser.stopAdvertising()
             nearby.discoverer.stopDiscovery()
             for endpointId in endpoints {
@@ -225,11 +295,10 @@ extension NearbyMeshNetwork: MeshNetworkTransport {
             nearby.advertiser.delegate = nil
             nearby.discoverer.delegate = nil
         }
-        bridge = nil  // Sever the bidirectional references (mirrors the Android transport's stop())
     }
 }
 
-// MARK: - Nearby delegates (inbound events; on delegateQueue)
+// MARK: - Nearby delegates (inbound events; on nearbyQueue)
 
 extension NearbyMeshNetwork: DiscovererDelegate {
 
@@ -257,6 +326,7 @@ extension NearbyMeshNetwork: AdvertiserDelegate {
             bridge?.checkConnectionRequest(
                 endpointId: endpointID, endpointInfo: endpointInfo,
                 incoming: true) ?? false
+        if accept { withLock { _ = pendingIncoming.insert(endpointID) } }
         connectionRequestHandler(accept)
     }
 }
@@ -370,14 +440,19 @@ extension NearbyMeshNetwork: ConnectionManagerDelegate {
             withLock {
                 _ = connectedEndpoints.insert(endpointID)
                 _ = outgoingRequests.remove(endpointID)
+                _ = pendingIncoming.remove(endpointID)
             }
             bridge?.connectionResult(endpointId: endpointID, success: true)
         case .rejected:
-            withLock { _ = outgoingRequests.remove(endpointID) }
+            withLock {
+                _ = outgoingRequests.remove(endpointID)
+                _ = pendingIncoming.remove(endpointID)
+            }
             bridge?.connectionResult(endpointId: endpointID, success: false)
         case .disconnected:
             let wasConnected = withLock { () -> Bool in
                 _ = outgoingRequests.remove(endpointID)
+                _ = pendingIncoming.remove(endpointID)
                 return connectedEndpoints.remove(endpointID) != nil
             }
             if wasConnected {
